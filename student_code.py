@@ -128,6 +128,85 @@ class KnowledgeBase(object):
         printv("Retracting {!r}", 0, verbose, [fact_or_rule])
         ####################################################
         # Student code goes here
+
+        """if isinstance(fact_or_rule, Fact): ## Given a fact
+            self.facts.remove(fact_or_rule) ## Remove The Given Fact
+            for f_o_r in fact_or_rule.supports_facts:
+                f_o_r.supported_by.remove(fact_or_rule)
+                if f_o_r.supported_by.amount() == 0:
+                    self.kb_retract(f_o_r) ## recursively remove facts
+
+            for r in fact_or_rule.supports_facts:
+                r.supported_by.remove(fact_or_rule)
+                if r.supported_by.amount() == 0:
+                    self.kb_retract(r) ## recursively remove facts
+
+        elif isinstance(fact_or_rule, Rule):
+            if not fact_or_rule.asserted:
+                self.rules.remove(fact_or_rule)
+
+                for f_ in fact_or_rule.supports_facts:
+                    f_.supported_by.remove(fact_or_rule)
+                    if f_.supported_by.amount == 0:
+                        self.kb_retract(f_)
+
+                for r_ in fact_or_rule.supports_rules:
+                    r_.supported_by.remove(fact_or_rule)
+                    if r_.supported_by.amount() == 0:
+                        self.kb_retract(r_) """
+        if(isinstance(fact_or_rule, Fact) and self.facts.count(self._get_fact(fact_or_rule))): ##Never retract rules, retract means make it not asserted
+            fact_or_rule.asserted = False
+            if not self._get_fact(fact_or_rule.supported_by):
+                self.kb_remove(self._get_fact(fact_or_rule))
+
+    def kb_remove(self, fr):
+        isFact = isinstance(fr, Fact)
+
+        if(isFact):
+            for f in self._get_fact(fr).supports_facts:
+                for fs in self._get_fact(f).supported_by:
+                    if fs[0].statement == fr.statement:
+                        self._get_fact(f).supported_by.remove(fs)
+
+                if not self._get_fact(f).supported_by: #Indent
+                    self.kb_remove(self._get_fact(f))
+
+            for r in self._get_fact(fr).supports_rules:
+                for rs in self._get_rule(r).supported_by:
+                    if rs[0] == fr.statement:
+                        self._get_rule(r).supported_by.remove(rs)
+
+                if not self._get_rule(r).supported_by and not self._get_rule(r).asserted: #indent
+                    self.kb_remove(self._get_rule(r))
+
+        elif not fr.asserted:
+            for f in self._get_rule(fr).supports_facts:
+                for fs in self._get_fact(f).supported_by:
+                    if fs[1] == fr:
+                        self._get_fact(f).supported_by.remove(fs)
+
+                if not self._get_fact(f).supported_by: #indent
+                    self.kb_remove(self._get_fact(f))
+
+            for r in self._get_rule(fr).supports_rules:
+                for rs in self._get_rule(r).supported_by:
+                    if rs[1] == fr:
+                        self._get_rule(r).supported_by.remove(rs)
+
+                if not self._get_rule(r).supported_by and not self._get_rule(r).asserted:
+                    self.kb_remove(self._get_rule(r))
+
+
+
+        if(isFact):
+            if(not self._get_fact(fr).supported_by):
+                self.facts.remove(self._get_fact(fr))
+        else:
+            if(not self._get_rule(fr).supported_by and not self._get_rule(fr).asserted): #check for assertion
+                self.rules.remove(self._get_rule(fr))
+
+
+
         
 
 class InferenceEngine(object):
@@ -146,3 +225,57 @@ class InferenceEngine(object):
             [fact.statement, rule.lhs, rule.rhs])
         ####################################################
         # Student code goes here
+        """for rul in kb.rules:
+            if match(fact.statement, rul.lhs[0]): # we want the first element on the left hand side
+                #We want to infer the rule first
+                kb.rules.append(rul.lhs[1]) # Infer the rest of the rule
+                if match(fact.statement, rul.lhs[1]):
+                    kb.facts.append(rul.rhs)
+                    self.fc_infer(rul.rhs, rul, kb)
+
+        for fac in kb.facts:
+            if match(fact.statement, rul.lhs[0]):
+                binding = instantiate(fact.statement, rul.lhs[0]) """
+
+        if rule.lhs:
+            bindings = match(fact.statement, rule.lhs[0])
+            if bindings:
+                if len(rule.lhs) == 1:
+                    info = instantiate(rule.rhs, bindings)
+                    n_fact = Fact(info, [[fact, rule]])
+                    n_fact.asserted = False
+                    kb.kb_assert(n_fact)
+                    rule.supports_facts.append(kb._get_fact(n_fact))
+                    fact.supports_facts.append(kb._get_fact(n_fact))
+                else:
+                    r_or_rule = rule.lhs[1:]
+                    lef = []
+                    for p in r_or_rule:
+                        info = instantiate(p, bindings)
+                        lef.append(info)
+                    new_rhs = instantiate(rule.rhs, bindings)
+                    n_rule = Rule([lef, new_rhs], [[fact, rule]])
+                    n_rule.asserted = False
+                    kb.kb_assert(n_rule)
+                    rule.supports_rules.append(kb._get_rule(n_rule))
+                    fact.supports_rules.append(kb._get_rule(n_rule))
+                    n_rule.asserted = False #This one works
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
